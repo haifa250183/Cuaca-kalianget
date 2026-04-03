@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Ukuran Font & Warna khusus untuk Widget */
+        body { font-family: sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 4px; overflow: hidden; }
+        .w-box { background: #1e293b; border-radius: 8px; padding: 6px; border: 1px solid #334155; }
+        .title { color: #38bdf8; font-size: 0.75rem; text-align: center; margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 3px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { color: #94a3b8; font-size: 0.6rem; padding-bottom: 4px; }
+        td { padding: 5px 0; text-align: center; border-bottom: 1px solid #334155; }
+        
+        /* Indikator Panah */
+        .arrow { display: inline-block; font-size: 1rem; color: #fb923c; font-weight: bold; }
+        
+        /* Status Kecepatan */
+        .s { color: #4ade80; } /* Aman */
+        .w { color: #facc15; } /* Waspada */
+        .d { color: #f87171; } /* Bahaya */
+        .u { font-size: 0.5rem; opacity: 0.6; margin-left: 1px; }
+    </style>
+</head>
+<body>
+    <div class="w-box">
+        <div class="title">WIND KALIAGET</div>
+        <table>
+            <thead><tr><th>JAM</th><th>KM/H</th><th>ARAH</th></tr></thead>
+            <tbody id="list"></tbody>
+        </table>
+    </div>
+
+<script>
+    const LAT = -7.0500, LON = 113.9333;
+
+    async function getData() {
+        try {
+            const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=wind_speed_10m,wind_direction_10m&timezone=Asia%2FJakarta&forecast_days=1`);
+            const d = await r.json();
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+
+            const now = new Date().getHours();
+            // Tampilkan 8 jam saja agar tidak perlu scroll di widget
+            for (let i = now; i < now + 8; i++) {
+                if (!d.hourly.time[i]) break;
+
+                const jam = d.hourly.time[i].split('T')[1].substring(0, 5);
+                const speed = d.hourly.wind_speed_10m[i];
+                const deg = d.hourly.wind_direction_10m[i];
+
+                let color = "s"; // safe
+                if (speed > 30) color = "d"; // danger
+                else if (speed > 18) color = "w"; // warn
+
+                list.innerHTML += `
+                    <tr>
+                        <td style="color:#64748b">${jam}</td>
+                        <td class="${color}"><b>${speed}</b><span class="u">km/h</span></td>
+                        <td><div class="arrow" style="transform: rotate(${deg}deg)">↑</div></td>
+                    </tr>`;
+            }
+        } catch (e) {
+            document.getElementById('list').innerHTML = '<tr><td colspan="3">Error Connection</td></tr>';
+        }
+    }
+
+    getData();
+    // Refresh setiap 30 menit
+    setInterval(getData, 1800000);
+</script>
+</body>
+</html>
